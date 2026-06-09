@@ -1,47 +1,36 @@
--- Таблица клиентов
-CREATE TABLE IF NOT EXISTS clients (
-    client_id INTEGER PRIMARY KEY,
-    client_name TEXT
-);
+DROP TABLE IF EXISTS sprt_alerts CASCADE;
+DROP TABLE IF EXISTS sprt_state CASCADE;
+DROP TABLE IF EXISTS sprt_params CASCADE;
+DROP TABLE IF EXISTS transactions CASCADE;
 
--- Таблица транзакций
-CREATE TABLE IF NOT EXISTS transactions (
-    txn_id SERIAL PRIMARY KEY,
-    client_id INTEGER REFERENCES clients(client_id),
-    amount DECIMAL(10,2),
-    txn_time TIMESTAMP,
-    is_fraud BOOLEAN
-);
-
--- Таблица состояния SPRT
-CREATE TABLE IF NOT EXISTS sprt_state (
-    client_id INTEGER PRIMARY KEY REFERENCES clients(client_id),
-    log_lr DOUBLE PRECISION DEFAULT 0,
-    last_txn_id INTEGER,
-    alert_flag BOOLEAN DEFAULT FALSE
-);
-
--- Таблица алертов
-CREATE TABLE IF NOT EXISTS alerts (
-    alert_id SERIAL PRIMARY KEY,
-    client_id INTEGER REFERENCES clients(client_id),
-    txn_id INTEGER REFERENCES transactions(txn_id),
-    alert_time TIMESTAMP,
-    log_lr_value DOUBLE PRECISION
-);
-
--- Таблица параметров SPRT
-CREATE TABLE IF NOT EXISTS sprt_params (
-    param_name VARCHAR(50) PRIMARY KEY,
-    param_value DOUBLE PRECISION,
-    description TEXT
-);
-
--- Таблица истории SPRT
-CREATE TABLE IF NOT EXISTS sprt_history (
+CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
-    client_id INTEGER REFERENCES clients(client_id),
-    txn_id INTEGER REFERENCES transactions(txn_id),
-    log_lr DOUBLE PRECISION,
-    txn_time TIMESTAMP
+    client_id INTEGER NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE sprt_state (
+    client_id INTEGER PRIMARY KEY,
+    log_likelihood_ratio DOUBLE PRECISION DEFAULT 0.0
+);
+
+CREATE TABLE sprt_params (
+    id SERIAL PRIMARY KEY,
+    alpha DOUBLE PRECISION NOT NULL,
+    beta DOUBLE PRECISION NOT NULL,
+    a DOUBLE PRECISION NOT NULL,
+    b DOUBLE PRECISION NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sprt_alerts (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL,
+    alert_type TEXT CHECK (alert_type IN ('fraud', 'normal')),
+    log_likelihood_ratio DOUBLE PRECISION,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO sprt_params (alpha, beta, a, b)
+VALUES (0.05, 0.1, (1-0.1)/0.05, 0.1/(1-0.05));
